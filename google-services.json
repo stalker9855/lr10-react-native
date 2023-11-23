@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "65362801055",
+    "project_id": "lab12-c8186",
+    "storage_bucket": "lab12-c8186.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:65362801055:android:2a090c043bad98ecaa4daa",
+        "android_client_info": {
+          "package_name": "com.lab12.test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8YmSz6JfoV7Jc64nFlomWW3QPBCAZ4rs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

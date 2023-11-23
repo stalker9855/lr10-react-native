@@ -1,68 +1,63 @@
-import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StatusBar,
-  StyleSheet,
-  TextInput,
   FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
   TouchableOpacity,
-  Alert,
+  View,
 } from "react-native";
-import * as SQLite from "expo-sqlite";
-import { useDispatch, useSelector } from "react-redux";
-import { addProduct, deleteProduct, setProducts } from "../store/productsSlice";
+import firestore from "@react-native-firebase/firestore";
+import { useEffect, useState } from "react";
+import { StatusBar } from "expo-status-bar";
 
-export const Hello = () => {
-  const products = useSelector((state) => state.products);
-  const dispatch = useDispatch();
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState(0);
-  const db = SQLite.openDatabase("products.db");
+const Example = () => {
+  const [products, setProducts] = useState([]);
+  const [productName, setProductName] = useState("");
+  const [productPrice, setProductPrice] = useState("");
 
   useEffect(() => {
-    db.transaction((tx) => {
-      tx.executeSql(
-        "CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, price INTEGER)",
-      );
-    });
-    db.transaction((tx) => {
-      tx.executeSql("SELECT * FROM products", [], (_, { rows }) => {
-        const data = rows._array;
-        dispatch(setProducts(data));
-      });
-    });
-  }, []);
+    const fetchProducts = () => {
+      const unsubscribe = firestore()
+        .collection("Products")
+        .onSnapshot((snapshot) => {
+          const productsList = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setProducts(productsList);
+        });
 
-  const handleAddProduct = () => {
-    if (!name || !price) {
-      Alert.alert("Error", "Please enter both a name and a price.");
-      return;
+      return () => unsubscribe();
+    };
+
+    fetchProducts();
+  }, []);
+  const addProduct = async () => {
+    try {
+      const newProduct = {
+        name: productName,
+        price: productPrice,
+      };
+      await firestore().collection("Products").add(newProduct);
+      setProductName("");
+      setProductPrice("");
+      setProducts([...products, newProduct]);
+    } catch (error) {
+      console.error(error);
     }
-    db.transaction((tx) => {
-      tx.executeSql(
-        "INSERT INTO products (name, price) VALUES (?, ?)",
-        [name, price],
-        (_, { insertId }) => {
-          dispatch(
-            addProduct({
-              id: insertId,
-              name: name,
-              price: price,
-            }),
-          );
-        },
-      );
-    });
   };
-  const handleDeleteProduct = (id) => {
-    db.transaction((tx) => {
-      tx.executeSql("DELETE FROM products WHERE id = ?", [id], (_, result) => {
-        if (result.rowsAffected > 0) {
-          dispatch(deleteProduct(id));
-        }
-      });
-    });
+  const deleteProdcut = async (productId) => {
+    try {
+      await firestore().collection("Products").doc(productId).delete();
+      const querySnapshot = await firestore().collection("Products").get();
+      const tempProducts = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setProducts(tempProducts);
+    } catch {
+      console.error(error);
+    }
   };
 
   return (
@@ -70,7 +65,7 @@ export const Hello = () => {
       <FlatList
         data={products}
         style={styles.container}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
             <Text key={item.id} style={styles.item}>
@@ -78,7 +73,7 @@ export const Hello = () => {
             </Text>
             <TouchableOpacity
               style={styles.button}
-              onPress={() => handleDeleteProduct(item.id)}
+              onPress={() => deleteProdcut(item.id)}
             >
               <Text>Delete</Text>
             </TouchableOpacity>
@@ -87,15 +82,20 @@ export const Hello = () => {
       />
       <StatusBar style="auto" />
       <View style={styles.amountContainer}>
-        <TextInput onChangeText={setName} placeholder="Name" />
+        <TextInput
+          onChangeText={setProductName}
+          value={productName}
+          placeholder="Name"
+        />
         <TextInput
           keyboardType="numeric"
-          onChangeText={setPrice}
+          onChangeText={setProductPrice}
+          value={productPrice}
           placeholder="Price"
         />
         <TouchableOpacity
           style={styles.purchaseButton}
-          onPress={() => handleAddProduct()}
+          onPress={() => addProduct()}
         >
           <Text>Add</Text>
         </TouchableOpacity>
@@ -104,6 +104,7 @@ export const Hello = () => {
   );
 };
 
+export default Example;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -174,5 +175,3 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
 });
-
-export default Hello;
